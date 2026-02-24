@@ -18,21 +18,7 @@ app.use(cors(corsOptions))
 app.use(express.json())
 app.use(cookieParser())
 
-const verifyToken = async (req, res, next) => {
-  const token = req.cookies?.token
 
-  if (!token) {
-    return res.status(401).send({ message: 'unauthorized access' })
-  }
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-    if (err) {
-      console.log(err)
-      return res.status(401).send({ message: 'unauthorized access' })
-    }
-    req.user = decoded
-    next()
-  })
-}
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(process.env.MONGODB_URI, {
@@ -43,6 +29,8 @@ const client = new MongoClient(process.env.MONGODB_URI, {
   },
 })
 async function run() {
+  const db = client.db('plantdb')    //data base name
+  const plantsCollection = db.collection('plants');
   try {
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
@@ -71,6 +59,29 @@ async function run() {
       } catch (err) {
         res.status(500).send(err)
       }
+    })
+    // add a plant in db
+    app.post('/add-plant', async (req, res) => {
+      const plant = req.body
+      const result = await plantsCollection.insertOne(plant)
+      res.send(result)
+    })
+    // add a get in db
+    app.get('/plant', async (req, res) => {
+      try {
+        const result = await plantsCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to fetch plants" });
+      }
+    });
+    // get a single plant data from db
+    app.get('/plant/:id', async (req, res) => {
+      const id = req.params.id
+      const result = await plantsCollection.findOne({
+        _id: new ObjectId(id),
+      })
+      res.send(result)
     })
 
     // Send a ping to confirm a successful connection

@@ -4,6 +4,7 @@ const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const jwt = require('jsonwebtoken')
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const port = process.env.PORT || 3000
 const app = express()
@@ -29,8 +30,10 @@ const client = new MongoClient(process.env.MONGODB_URI, {
   },
 })
 async function run() {
+
   const db = client.db('plantdb')    //data base name
   const plantsCollection = db.collection('plants');
+  const ordersCollection = db.collection('orders')
   try {
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
@@ -83,6 +86,43 @@ async function run() {
       })
       res.send(result)
     })
+    // paymwnt system 
+    app.post("/create-payment-intent", async (req, res) => {
+      try {
+        const { plantId, quantity } = req.body;
+        const qurey = { _id: new ObjectId(plantId) }
+
+        if (!plantId || !quantity) {
+          return res.status(400).send({ error: "Missing plantId or quantity" });
+        }
+        const plant = await plantsCollection.findOne(qurey);
+
+        if (!plant) {
+          return res.status(404).send({ error: "Plant not found" });
+        }
+
+        const amount = parseInt(plant.price * quantity * 100); // cents
+
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount,
+          currency: "usd",
+          automatic_payment_methods: { enabled: true },
+        });
+        res.send({ clientSecret: paymentIntent.client_secret });
+
+      } catch (err) {
+        console.error("Stripe Error:", err.message);
+        res.status(500).send({ error: err.message });
+      }
+    });
+
+    // save order data in orders collection in db
+    app.post('/order', async (req, res) => {
+      const orderData = req.body
+      const result = await ordersCollection.insertOne(orderData)
+      res.send(result)
+    });
+
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 })

@@ -33,7 +33,8 @@ async function run() {
 
   const db = client.db('plantdb')    //data base name
   const plantsCollection = db.collection('plants');
-  const ordersCollection = db.collection('orders')
+  const ordersCollection = db.collection('orders');
+  const usersCollection = db.collection('users')
   try {
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
@@ -86,7 +87,7 @@ async function run() {
       })
       res.send(result)
     })
-    // paymwnt system 
+    // payment system 
     app.post("/create-payment-intent", async (req, res) => {
       try {
         const { plantId, quantity } = req.body;
@@ -115,7 +116,12 @@ async function run() {
         res.status(500).send({ error: err.message });
       }
     });
-
+    // save user uplod db
+    app.post('/user', async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
     // save order data in orders collection in db
     app.post('/order', async (req, res) => {
       const orderData = req.body

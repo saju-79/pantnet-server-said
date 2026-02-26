@@ -18,7 +18,22 @@ app.use(cors(corsOptions))
 
 app.use(express.json())
 app.use(cookieParser())
+// verifyToken
+const verifyToken = async (req, res, next) => {
+  const token = req.cookies?.token
 
+  if (!token) {
+    return res.status(401).send({ message: 'unauthorized access' })
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      console.log(err)
+      return res.status(401).send({ message: 'unauthorized access' })
+    }
+    req.user = decoded
+    next()
+  })
+}
 
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -36,6 +51,7 @@ async function run() {
   const ordersCollection = db.collection('orders');
   const usersCollection = db.collection('users')
   try {
+
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
       const email = req.body
@@ -116,18 +132,86 @@ async function run() {
         res.status(500).send({ error: err.message });
       }
     });
+
     // save user uplod db
     app.post('/user', async (req, res) => {
       const user = req.body;
+      const query = { email: user?.email }
+      const alreadyExists = await usersCollection.findOne(query);
+      const updatelastSignInTime = {
+        $set: {
+          lastSignInTime: new Date().toISOString()
+        }
+      }
+      if (!!alreadyExists) {
+        const result = await usersCollection.updateOne(query, updatelastSignInTime);
+        return res.send(result)
+      }
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
+
+    // get a user's role
+    app.get('/user/role/:email', async (req, res) => {
+      const email = req.params.email
+      const result = await usersCollection.findOne({ email })
+      if (!result) return res.status(404).send({ message: 'User Not Found.' })
+      res.send({ role: result?.role })
+    })
+
     // save order data in orders collection in db
     app.post('/order', async (req, res) => {
-      const orderData = req.body
-      const result = await ordersCollection.insertOne(orderData)
+      const orderData = req.body;
+      const result = await ordersCollection.insertOne(orderData);
       res.send(result)
     });
+
+    // update plant quantity(increase/decrease)
+    app.patch('/quantity-update/:id', async (req, res) => {
+      const id = req.params.id;
+      const { quantityToUpdate, status } = req.body
+      const filter = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $inc: {
+          quantity: status === 'increase' ? quantityToUpdate : -quantityToUpdate,
+        },
+      }
+
+      const result = await plantsCollection.updateOne(filter, updateDoc)
+      console.log(result)
+      res.send(result)
+    });
+
+
+    // get all users for admin
+
+    app.get('/all-users', verifyToken, async (req, res) => {
+      const filter = {
+        email: {
+          $ne: req?.user?.email,
+        },
+      }
+      const result = await usersCollection.find(filter).toArray()
+      res.send(result)
+    })
+
+    // update a user's role
+    app.patch('/user/role/update/:email', verifyToken, async (req, res) => {
+      const email = req.params.email
+      const { role } = req.body
+      // console.log(role)
+      const filter = { email: email }
+      const updateDoc = {
+        $set: {
+          role,
+          status: 'verified',
+        },
+      }
+      const result = await usersCollection.updateOne(filter, updateDoc)
+      console.log(result)
+      res.send(result)
+    }
+    )
 
 
     // Send a ping to confirm a successful connection
@@ -148,3 +232,5 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`plantNet is running on port ${port}`)
 })
+
+

@@ -51,6 +51,35 @@ async function run() {
   const ordersCollection = db.collection('orders');
   const usersCollection = db.collection('users')
   try {
+    // verifyaddmin 
+    const verifyAdmin = async (req, res, next) => {
+      const email = req?.user?.email;
+      const user = await usersCollection.findOne({
+        email,
+      })
+      // console.log(user?.role)
+      if (!user || user?.role !== 'admin')
+        return res
+          .status(403)
+          .send({ message: 'Admin only Actions!', role: user?.role })
+
+      next()
+    }
+
+    // verifyseller 
+    const verifySeller = async (req, res, next) => {
+      const email = req?.user?.email
+      const user = await usersCollection.findOne({
+        email,
+      })
+      console.log(user?.role)
+      if (!user || user?.role !== 'seller')
+        return res
+          .status(403)
+          .send({ message: 'Admin only Actions!', role: user?.role })
+
+      next()
+    }
 
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
@@ -81,7 +110,7 @@ async function run() {
       }
     })
     // add a plant in db
-    app.post('/add-plant', async (req, res) => {
+    app.post('/add-plant', verifySeller, verifyToken, async (req, res) => {
       const plant = req.body
       const result = await plantsCollection.insertOne(plant)
       res.send(result)
@@ -211,7 +240,197 @@ async function run() {
       console.log(result)
       res.send(result)
     }
+    );
+
+    // become seller request
+    app.patch(
+      '/become-seller-request/:email',
+      verifyToken,
+      async (req, res) => {
+        const email = req.params.email
+
+        const filter = { email: email }
+        const updateDoc = {
+          $set: {
+            status: 'requested',
+          },
+        }
+        const result = await usersCollection.updateOne(filter, updateDoc)
+        res.send(result)
+      }
     )
+
+
+    // admin stats
+    app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
+      const totalUser = await usersCollection.estimatedDocumentCount()
+      const totalPlant = await plantsCollection.estimatedDocumentCount()
+      const totalOrder = await ordersCollection.estimatedDocumentCount()
+
+      // mongodb aggregation
+      const result = await ordersCollection
+        .aggregate([
+          {
+            // covert id into date
+            $addFields: {
+              createdAt: { $toDate: '$_id' },
+            },
+          },
+          {
+            //Group data by date
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: '%Y-%m-%d',
+                  date: '$createdAt',
+                },
+              },
+              revenue: { $sum: '$price' },
+              order: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray()
+
+      const barChartData = result.map(data => ({
+        date: data._id,
+        revenue: data.revenue,
+        order: data.order,
+      }))
+      const totalRevenue = result.reduce((sum, data) => sum + data?.revenue, 0)
+
+      res.send({
+        totalUser,
+        totalPlant,
+        barChartData,
+        totalOrder,
+        totalRevenue,
+      })
+    })
+
+
+    // get all order info for customer
+    app.get('/orders/customer/:email', verifyToken, async (req, res) => {
+      const email = req.params.email
+      const filter = { 'customer.email': email }
+      const result = await ordersCollection.find(filter).toArray()
+      res.send(result)
+    })
+
+    // get all order info for seller
+    app.get(
+      '/orders/seller/:email',
+      verifyToken,
+      verifySeller,
+      async (req, res) => {
+        const email = req.params.email
+        const filter = { 'seller.sellerEmail': email }
+        const result = await ordersCollection.find(filter).toArray()
+        res.send(result)
+      }
+    )
+
+
+    // update a user's cencel
+
+    app.patch('/order/status/update/:id', verifyToken, async (req, res) => {
+      try {
+        const id = req.params.id
+        const { status } = req.body
+
+        // Validate status
+        if (!status) {
+          return res.status(400).send({ success: false, message: 'Status is required' })
+        }
+
+        const filter = { _id: new ObjectId(id) }
+
+        const updateDoc = {
+          $set: { status }
+        }
+
+        const result = await ordersCollection.updateOne(filter, updateDoc)
+
+        if (result.modifiedCount > 0) {
+          res.send({
+            success: true,
+            message: 'Order status updated successfully',
+          })
+        } else {
+          res.status(404).send({
+            success: false,
+            message: 'Order not found or already updated',
+          })
+        }
+
+      } catch (error) {
+        console.error(error)
+        res.status(500).send({
+          success: false,
+          message: 'Internal Server Error',
+        })
+      }
+    })
+    // delete order 
+
+    app.delete('/order/:id', verifyToken, async (req, res) => {
+      try {
+        const id = req.params.id
+
+        const result = await ordersCollection.deleteOne({
+          _id: new ObjectId(id),
+        })
+
+        if (result.deletedCount > 0) {
+          res.send({ success: true, message: 'Order deleted successfully' })
+        } else {
+          res.status(404).send({ success: false, message: 'Order not found' })
+        }
+
+      } catch (error) {
+        console.error(error)
+        res.status(500).send({ success: false, message: 'Server error' })
+      }
+    })
+
+    //  confromorders all data 
+    app.get('/orders/conformorders', verifyToken, async (req, res) => {
+      try {
+        const result = await ordersCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to fetch plants" });
+      }
+    });
+
+    // seller update stasus 
+    app.patch('/user/status/update/:id', async (req, res) => {
+      const id = req.params.id
+      const { status } = req.body
+      const query = { _id: new ObjectId(id) }
+      const result = await usersCollection.updateOne(query,
+        { $set: { status } }
+      )
+
+      res.send(result)
+    })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     // Send a ping to confirm a successful connection

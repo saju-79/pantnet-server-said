@@ -16,7 +16,7 @@ const app = express()
 
 // }));
 const corsOptions = {
-  origin: ['http://localhost:5174', 'http://localhost:5173'],
+  origin: ['https://plantnet-31532.web.app', 'https://maniacal-basketball.surge.sh'],
   credentials: true,
   optionSuccessStatus: 200,
 
@@ -453,7 +453,7 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => {
-  console.log(`plantNet is running on port ${port}`)
+  // console.log(`plantNet is running on port ${port}`)
 })
 
 

@@ -143,15 +143,28 @@ async function run() {
         _id: new ObjectId(id),
       })
       res.send(result)
-    })
+    });
+
+    
     // get seller plant data from db
     app.get('/plant/seller/:email', async (req, res) => {
-      const email = req.params.email;
-      const query = { "userData.email": email };  // ✅ nested field
-      const result = await plantsCollection.find(query).toArray();
+      try {
+        const email = req.params.email;
 
-      res.send(result);
+        // Query nested email
+        const query = { "userData.email": email }; // ✅ correct syntax
+
+        const result = await plantsCollection.find(query).toArray();
+
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: "Server error" });
+      }
     });
+
+
+
     // payment system 
     app.post("/create-payment-intent", async (req, res) => {
       try {

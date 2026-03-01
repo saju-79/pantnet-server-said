@@ -134,12 +134,14 @@ async function run() {
     });
 
 
-    // get a seeler  plant data from db
+    // get seller plant data from db
     app.get('/plant/seller/:email', async (req, res) => {
-      const email = req.params.email
-      const result = await plantsCollection.findOne({ email })
-      res.send(result)
-    })
+      const email = req.params.email;
+      const query = { "userData.email": email };  // ✅ nested field
+      const result = await plantsCollection.find(query).toArray();
+
+      res.send(result);
+    });
 
     // get a single plant data from db
     app.get('/plant/:id', async (req, res) => {

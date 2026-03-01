@@ -16,7 +16,7 @@ const app = express()
 
 // }));
 const corsOptions = {
-  origin: ['https://plantnet-31532.web.app', 'https://maniacal-basketball.surge.sh'],
+  origin: ['https://plantnet-31532.web.app', 'https://plantnet-31532.web.app'],
   // origin:['http://localhost:5173' , 'http://localhost:5174']
   credentials: true,
   optionSuccessStatus: 200,
@@ -118,7 +118,7 @@ async function run() {
       }
     })
     // add a plant in db
-    app.post('/add-plant', verifySeller, verifyToken, async (req, res) => {
+    app.post('/add-plant', verifyToken, async (req, res) => {
       const plant = req.body
       const result = await plantsCollection.insertOne(plant)
       res.send(result)
@@ -282,7 +282,7 @@ async function run() {
 
 
     // admin stats
-    app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
+    app.get('/admin-stats', verifyToken, async (req, res) => {
       const totalUser = await usersCollection.estimatedDocumentCount()
       const totalPlant = await plantsCollection.estimatedDocumentCount()
       const totalOrder = await ordersCollection.estimatedDocumentCount()

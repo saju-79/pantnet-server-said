@@ -17,6 +17,7 @@ const app = express()
 // }));
 const corsOptions = {
   origin: ['https://plantnet-31532.web.app', 'https://maniacal-basketball.surge.sh'],
+  // origin:['http://localhost:5173' , 'http://localhost:5174']
   credentials: true,
   optionSuccessStatus: 200,
 
@@ -131,6 +132,15 @@ async function run() {
         res.status(500).send({ message: "Failed to fetch plants" });
       }
     });
+
+
+    // get a seeler  plant data from db
+    app.get('/plant/seller/:email', async (req, res) => {
+      const email = req.params.email
+      const result = await plantsCollection.findOne({ email })
+      res.send(result)
+    })
+
     // get a single plant data from db
     app.get('/plant/:id', async (req, res) => {
       const id = req.params.id
@@ -139,6 +149,7 @@ async function run() {
       })
       res.send(result)
     })
+
     // payment system 
     app.post("/create-payment-intent", async (req, res) => {
       try {
@@ -422,12 +433,6 @@ async function run() {
       res.send(result)
     })
 
-    // get a seeler  plant data from db
-    app.get('/plant/:email', async (req, res) => {
-      const email = req.params.email
-      const result = await plantsCollection.findOne({ email })
-      res.send(result)
-    })
 
 
 

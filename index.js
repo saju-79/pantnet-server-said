@@ -134,14 +134,7 @@ async function run() {
     });
 
 
-    // get seller plant data from db
-    app.get('/plant/seller/:email', async (req, res) => {
-      const email = req.params.email;
-      const query = { "userData.email": email };  // ✅ nested field
-      const result = await plantsCollection.find(query).toArray();
 
-      res.send(result);
-    });
 
     // get a single plant data from db
     app.get('/plant/:id', async (req, res) => {
@@ -151,7 +144,14 @@ async function run() {
       })
       res.send(result)
     })
+    // get seller plant data from db
+    app.get('/plant/seller/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { "userData.email": email };  // ✅ nested field
+      const result = await plantsCollection.find(query).toArray();
 
+      res.send(result);
+    });
     // payment system 
     app.post("/create-payment-intent", async (req, res) => {
       try {

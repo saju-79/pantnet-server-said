@@ -422,7 +422,12 @@ async function run() {
       res.send(result)
     })
 
-
+    // get a seeler  plant data from db
+    app.get('/plant/:email', async (req, res) => {
+      const email = req.params.email
+      const result = await plantsCollection.findOne({ email })
+      res.send(result)
+    })
 
 
 

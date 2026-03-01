@@ -16,7 +16,7 @@ const app = express()
 
 // }));
 const corsOptions = {
-  origin: ['https://plantnet-31532.web.app', 'https://plantnet-31532.web.app'],
+  origin: ['http://localhost:5173', 'http://localhost:5174'],
   // origin:['http://localhost:5173' , 'http://localhost:5174']
   credentials: true,
   optionSuccessStatus: 200,
@@ -145,7 +145,7 @@ async function run() {
       res.send(result)
     });
 
-    
+
     // get seller plant data from db
     app.get('/plant/seller/:email', async (req, res) => {
       try {
@@ -163,6 +163,56 @@ async function run() {
       }
     });
 
+    // delete seller for your plant 
+
+    app.delete('/seller/plant/:id', verifyToken, verifySeller, async (req, res) => {
+      try {
+        const id = req.params.id
+
+        // Get email from verified token
+        const userEmail = req.user.email
+
+        const query = {
+          _id: new ObjectId(id),
+          "userData.email": userEmail   // ✅ ensure owner
+        }
+
+        const result = await plantsCollection.deleteOne(query)
+
+        if (result.deletedCount > 0) {
+          res.send({ success: true, message: 'Plant deleted successfully' })
+        } else {
+          res.status(404).send({ success: false, message: 'Plant not found or unauthorized' })
+        }
+
+      } catch (error) {
+        console.error(error)
+        res.status(500).send({ success: false, message: 'Server error' })
+      }
+    })
+
+    
+    //  seller plant update
+
+    app.patch('/seller/plants/:id', verifyToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const updateData = req.body;
+        console.log('PATCH ID:', id);
+        console.log('Update data:', updateData);
+
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = { $set: updateData };
+
+        const result = await plantsCollection.updateOne(filter, updateDoc);
+        console.log('Update result:', result);
+
+        res.send(result);
+      } catch (error) {
+        console.error('PATCH error:', error);
+        res.status(500).send({ message: 'Failed to update plant', error: error.message });
+      }
+    });
 
 
     // payment system 
@@ -247,7 +297,7 @@ async function run() {
 
     // get all users for admin
 
-    app.get('/all-users', verifyToken, async (req, res) => {
+    app.get('/all-users', verifyToken, verifyAdmin, async (req, res) => {
       const filter = {
         email: {
           $ne: req?.user?.email,
@@ -295,7 +345,7 @@ async function run() {
 
 
     // admin stats
-    app.get('/admin-stats', verifyToken, async (req, res) => {
+    app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
       const totalUser = await usersCollection.estimatedDocumentCount()
       const totalPlant = await plantsCollection.estimatedDocumentCount()
       const totalOrder = await ordersCollection.estimatedDocumentCount()
@@ -427,12 +477,17 @@ async function run() {
     })
 
     //  confromorders all data 
-    app.get('/orders/conformorders', verifyToken, async (req, res) => {
+    app.get('/orders/conformorders/:email', verifyToken, async (req, res) => {
       try {
-        const result = await ordersCollection.find().toArray();
+        const email = req.params.email;
+
+        const result = await ordersCollection
+          .find({ "seller.sellerEmail": email })
+          .toArray();
+
         res.send(result);
       } catch (error) {
-        res.status(500).send({ message: "Failed to fetch plants" });
+        res.status(500).send({ message: "Failed to fetch orders" });
       }
     });
 

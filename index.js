@@ -191,15 +191,15 @@ async function run() {
       }
     })
 
-    
+
     //  seller plant update
 
-    app.patch('/seller/plants/:id', verifyToken, async (req, res) => {
+    app.patch('/seller/plants/:id', verifyToken, verifySeller, async (req, res) => {
       try {
         const { id } = req.params;
         const updateData = req.body;
-        console.log('PATCH ID:', id);
-        console.log('Update data:', updateData);
+        // console.log('PATCH ID:', id);
+        // console.log('Update data:', updateData);
 
         const filter = { _id: new ObjectId(id) };
         const updateDoc = { $set: updateData };

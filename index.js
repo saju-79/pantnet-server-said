@@ -1,3 +1,4 @@
+import Cors from "cors";
 import cors from 'cors'
 require('dotenv').config()
 const express = require('express');
@@ -24,13 +25,23 @@ app.use(express.json());
 //   optionSuccessStatus: 200,
 
 // }
-app.use(cors({
+
+const cors = Cors({
   origin: [
-    'http://localhost:5173',
-    'https://plantnet-31532.web.app'
+    "http://localhost:5173",
+    "https://plantnet-31532.web.app"
   ],
-  credentials: true
-}));
+  methods: ["GET", "POST", "PUT", "DELETE"],
+   optionSuccessStatus: 200
+});
+
+// app.use(cors({
+//   origin: [
+//     'http://localhost:5173',
+//     'https://plantnet-31532.web.app'
+//   ],
+//   credentials: true
+// }));
 // app.use(cors(corsOptions))
 
 app.use(express.json())

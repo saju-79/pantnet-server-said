@@ -1,7 +1,7 @@
 import cors from 'cors'
 require('dotenv').config()
-const express = require('express')
-const cors = require('cors')
+const express = require('express');
+const cors = require('cors');
 const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const jwt = require('jsonwebtoken')
@@ -9,6 +9,8 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const port = process.env.PORT || 3000
 const app = express()
+app.use(cors());          // ✅ MUST be here
+app.use(express.json()); 
 // middleware
 // import cors from 'cors';
 // app.use(cors({
@@ -22,7 +24,6 @@ const app = express()
 //   optionSuccessStatus: 200,
 
 // }
-
 app.use(cors({
   origin: [
     'http://localhost:5173',

@@ -1,7 +1,6 @@
-import Cors from "cors";
-import cors from 'cors'
-require('dotenv').config()
+
 const express = require('express');
+// const cors = require('cors');
 const cors = require('cors');
 const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
@@ -11,38 +10,26 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 3000
 const app = express()
 app.use(cors());          // ✅ MUST be here
-app.use(express.json()); 
-// middleware
-// import cors from 'cors';
-// app.use(cors({
+app.use(express.json());
 
-//   credentials: true,
+require('dotenv').config()
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser')
 
-// }));
-// const corsOptions = {
-//   origin: ['http://localhost:5173', 'https://plantnet-31532.web.app'],
-//   credentials: true,
-//   optionSuccessStatus: 200,
-
-// }
-
-const cors = Cors({
+app.use(cors({
   origin: [
     "http://localhost:5173",
     "https://plantnet-31532.web.app"
   ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-   optionSuccessStatus: 200
-});
+  credentials: true
+}));
 
-// app.use(cors({
-//   origin: [
-//     'http://localhost:5173',
-//     'https://plantnet-31532.web.app'
-//   ],
-//   credentials: true
-// }));
-// app.use(cors(corsOptions))
+app.use(express.json());
+app.use(cookieParser());
+
+require('dotenv').config()
+
 
 app.use(express.json())
 app.use(cookieParser())

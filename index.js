@@ -31,9 +31,16 @@ app.use(cookieParser());
 require('dotenv').config()
 
 
+app.use(cors({
+  origin: "https://plantnet-31532.web.app",
+  credentials: true
+}))
 
-
-
+res.cookie("token", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none"
+})
 
 
 app.use(express.json())
